@@ -1,7 +1,16 @@
 package main
 
-import "github.com/psankar/keeri/keeri"
+import (
+	"fmt"
+
+	"github.com/psankar/keeri/keeri"
+)
 
 func main() {
-	keeri.NewKeeri()
+	db := &keeri.Keeri{}
+	db.CreateTable("table1")
+	s := "hello"
+	db.Insert("table1", s)
+	s = "world"
+	fmt.Println(db.Select("table1"), s)
 }

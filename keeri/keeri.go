@@ -126,7 +126,7 @@ func (db *Keeri) CreateTable(tableName string, cols ...ColumnDesc) error {
 	return nil
 }
 
-func (db *Keeri) Insert(tableName string, values ...interface{}) error {
+func (db *Keeri) Insert(tableName string, values ...interface{}) (err error) {
 	tbl := db.tables[tableName]
 
 	if len(tbl.colsDesc) != len(values) {
@@ -134,6 +134,12 @@ func (db *Keeri) Insert(tableName string, values ...interface{}) error {
 	}
 
 	id := tbl.newRowID()
+
+	defer func() {
+		if r := recover(); r != nil {
+			err = r.(error)
+		}
+	}()
 
 	for i, j := range tbl.colsDesc {
 		switch j.ColType {

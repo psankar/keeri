@@ -135,6 +135,13 @@ func TestInsertIntoTableWithIntStringAndCustomColumns(t *testing.T) {
 		t.Error("No error message for insert with insufficient values")
 	}
 
+	e = db.Insert("table1", "blah", "blah", "blah")
+	if e != nil {
+		t.Log("Insert with mismatched types failed correctly:\n", e)
+	} else {
+		t.Error("No error message for insert with mismatched types")
+	}
+
 	records := db.Select("table1")
 	t.Log("Records returned:")
 	t.Log(records)

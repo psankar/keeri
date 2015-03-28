@@ -136,6 +136,8 @@ func (db *Keeri) Insert(tableName string, values ...interface{}) (err error) {
 	id := tbl.newRowID()
 
 	defer func() {
+		// TODO: Atomicity yet to be implemented.
+		// Partial inserts will exist in case of errors
 		if r := recover(); r != nil {
 			err = r.(error)
 		}

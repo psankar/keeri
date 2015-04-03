@@ -33,6 +33,12 @@ type table struct {
 
 	rowCounter     rowID
 	rowCounterLock sync.RWMutex
+
+	// As of now, this is a single table-level lock.
+	// We will need more fine-grained locks later,
+	// when we have to implement joins and also for
+	// better performance.
+	dataLock sync.RWMutex
 }
 
 func (t *table) newRowID() rowID {
@@ -54,16 +60,39 @@ func (t *table) curRowID() rowID {
 }
 
 func (t *table) String() string {
-	s := "\n\n"
+	t.dataLock.RLock()
+	defer t.dataLock.RUnlock()
 
-	for i, j := range t.colsDesc {
-		s += fmt.Sprintf("%d) %s:%d\n", i, j.ColName, j.ColType)
+	s := "\n"
+
+	for _, j := range t.colsDesc {
+		s += fmt.Sprintf("%s,", j.ColName)
+	}
+	s += "\n-------------------\n"
+
+	for i := rowID(1); i <= t.curRowID(); i++ {
+		s += fmt.Sprintf("%d) ", i)
+		for _, j := range t.colsDesc {
+			switch j.ColType {
+			case IntColumn:
+				col := t.cols[j.ColName].(map[rowID]int)
+				s += strconv.Itoa(col[i])
+			case StringColumn:
+				col := t.cols[j.ColName].(map[rowID]string)
+				s += col[i]
+			case CustomColumn:
+				col := t.cols[j.ColName].(map[rowID]interface{})
+				s += fmt.Sprintf("%s", col[i])
+			default:
+			}
+			s += ","
+		}
+		s += "\n"
 	}
 
-	s += "\nrowCounter: "
+	s += "\nNumber of records: "
 	s += strconv.Itoa(int(t.curRowID()))
 	s += "\n"
-	s += fmt.Sprintf("%v", t.cols)
-	s += "\n\n"
+
 	return s
 }

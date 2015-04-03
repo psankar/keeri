@@ -24,7 +24,8 @@ func TestEmptyCreateTable(t *testing.T) {
 func TestCreateTableWithSingleIntColumn(t *testing.T) {
 	db := &Keeri{}
 
-	e := db.CreateTable("table1", ColumnDesc{ColName: "col1", ColType: IntColumn})
+	e := db.CreateTable("table1",
+		ColumnDesc{ColName: "col1", ColType: IntColumn})
 	if e != nil {
 		t.Error("Test for single Int column creation failed", e)
 	} else {
@@ -35,7 +36,8 @@ func TestCreateTableWithSingleIntColumn(t *testing.T) {
 func TestInsertIntoTableWithSingleIntColumn(t *testing.T) {
 	db := &Keeri{}
 
-	e := db.CreateTable("table1", ColumnDesc{ColName: "col1", ColType: IntColumn})
+	e := db.CreateTable("table1",
+		ColumnDesc{ColName: "col1", ColType: IntColumn})
 	if e != nil {
 		t.Error("Test for single Int column creation, during single Int INSERT testing failed", e)
 	} else {
@@ -56,15 +58,14 @@ func TestInsertIntoTableWithSingleIntColumn(t *testing.T) {
 		t.Log("Second INSERT")
 	}
 
-	records := db.Select("table1")
-	t.Log("Records returned:")
-	t.Log(records)
+	t.Log(db.String())
 }
 
 func TestInsertIntoTableWithIntAndStringColumns(t *testing.T) {
 	db := &Keeri{}
 
-	e := db.CreateTable("table1", ColumnDesc{ColName: "col1", ColType: IntColumn},
+	e := db.CreateTable("table1",
+		ColumnDesc{ColName: "col1", ColType: IntColumn},
 		ColumnDesc{ColName: "col2", ColType: StringColumn})
 	if e != nil {
 		t.Error("Table creation failed", e)
@@ -93,9 +94,7 @@ func TestInsertIntoTableWithIntAndStringColumns(t *testing.T) {
 		t.Error("No error message for insert with insufficient values")
 	}
 
-	records := db.Select("table1")
-	t.Log("Records returned:")
-	t.Log(records)
+	t.Log(db.String())
 }
 
 func TestInsertIntoTableWithIntStringAndCustomColumns(t *testing.T) {
@@ -142,7 +141,5 @@ func TestInsertIntoTableWithIntStringAndCustomColumns(t *testing.T) {
 		t.Error("No error message for insert with mismatched types")
 	}
 
-	records := db.Select("table1")
-	t.Log("Records returned:")
-	t.Log(records)
+	t.Log(db.String())
 }

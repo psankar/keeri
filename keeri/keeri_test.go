@@ -7,6 +7,7 @@
 package keeri
 
 import (
+	"fmt"
 	"testing"
 	"time"
 )
@@ -97,20 +98,25 @@ func TestInsertIntoTableWithIntAndStringColumns(t *testing.T) {
 	t.Log(db.String())
 }
 
+type point struct {
+	x, y int
+}
+
+func (p point) String() string {
+	return fmt.Sprintf("Point{%d, %d}", p.x, p.y)
+}
+
 func TestInsertIntoTableWithIntStringAndCustomColumns(t *testing.T) {
 	db := &Keeri{}
 
-	e := db.CreateTable("table1", ColumnDesc{ColName: "col1", ColType: IntColumn},
+	e := db.CreateTable("table1",
+		ColumnDesc{ColName: "col1", ColType: IntColumn},
 		ColumnDesc{ColName: "col2", ColType: StringColumn},
 		ColumnDesc{ColName: "col3", ColType: CustomColumn})
 	if e != nil {
 		t.Error("Table creation failed", e)
 	} else {
 		t.Log("Table created")
-	}
-
-	type point struct {
-		x, y int
 	}
 
 	e = db.Insert("table1", 2, "Hello", point{0, 0})

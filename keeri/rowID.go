@@ -20,7 +20,7 @@ func sortAndDeDup(arr []rowID) []rowID {
 		m[int(v)] = true
 	}
 
-	r := make([]int, len(m))
+	r := make([]int, 0, len(m))
 	for k, _ := range m {
 		r = append(r, k)
 	}

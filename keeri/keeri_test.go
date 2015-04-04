@@ -8,6 +8,7 @@ package keeri
 
 import (
 	"fmt"
+	"reflect"
 	"testing"
 	"time"
 )
@@ -148,4 +149,69 @@ func TestInsertIntoTableWithIntStringAndCustomColumns(t *testing.T) {
 	}
 
 	t.Log(db.String())
+}
+
+func TestCondition(t *testing.T) {
+	db := &Keeri{}
+
+	_ = db.CreateTable("table1",
+		ColumnDesc{ColName: "col1", ColType: IntColumn},
+		ColumnDesc{ColName: "col2", ColType: StringColumn},
+		ColumnDesc{ColName: "col3", ColType: CustomColumn})
+
+	_ = db.Insert("table1", 1, "STRDATA1", time.Now())
+	_ = db.Insert("table1", 2, "STRDATA2", point{0, 0})
+	_ = db.Insert("table1", 3, "STRDATA2", point{1, 1})
+	_ = db.Insert("table1", 3000, "STRDATA2", time.Now())
+	t.Log(db.String())
+
+	t.Log("Searching for a single condition: String data in a column")
+	c1 := &ConditionTree{
+		op: OR,
+		conditions: []Condition{
+			Condition{
+				op:      EQ,
+				colType: StringColumn,
+				colData: db.tables["table1"].cols["col2"].(map[rowID]string),
+				value:   "STRDATA1",
+			},
+		},
+		children: nil,
+	}
+
+	res, err := db.Query("table1", []string{"*"}, c1)
+	if err != nil {
+		t.Error(err)
+	}
+	if reflect.DeepEqual((res.([]rowID)), ([]rowID{1})) != true {
+		t.Errorf("Expected: []rowID{1} Got %v", res)
+	}
+
+	t.Log("Searching for two conditions with an AND: String and Int data")
+	c2 := &ConditionTree{
+		op: AND,
+		conditions: []Condition{
+			Condition{
+				op:      EQ,
+				colType: StringColumn,
+				colData: db.tables["table1"].cols["col2"].(map[rowID]string),
+				value:   "STRDATA2",
+			},
+			Condition{
+				op:      LT,
+				colType: IntColumn,
+				colData: db.tables["table1"].cols["col1"].(map[rowID]int),
+				value:   1000,
+			},
+		},
+		children: nil,
+	}
+
+	res, err = db.Query("table1", []string{"*"}, c2)
+	if err != nil {
+		t.Error(err)
+	}
+	if reflect.DeepEqual((res.([]rowID)), ([]rowID{2, 3})) != true {
+		t.Errorf("Expected: []rowID{1} Got %v", res)
+	}
 }

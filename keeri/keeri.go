@@ -138,7 +138,7 @@ const (
 type Condition struct {
 	op      RelationalOperator
 	colType ColumnType
-	colData *map[rowID]interface{}
+	colData interface{}
 
 	// NOTE:
 	// The below value could become an array of interfaces
@@ -286,38 +286,38 @@ func evaluateCondition(i *Condition) []rowID {
 	case IntColumn:
 		switch i.op {
 		case EQ:
-			for k, v := range *i.colData {
-				if v.(int) == i.value.(int) {
+			for k, v := range i.colData.(map[rowID]int) {
+				if v == i.value.(int) {
 					ret = append(ret, k)
 				}
 			}
 		case NEQ:
-			for k, v := range *i.colData {
-				if v.(int) != i.value.(int) {
+			for k, v := range i.colData.(map[rowID]int) {
+				if v != i.value.(int) {
 					ret = append(ret, k)
 				}
 			}
 		case LT:
-			for k, v := range *i.colData {
-				if v.(int) < i.value.(int) {
+			for k, v := range i.colData.(map[rowID]int) {
+				if v < i.value.(int) {
 					ret = append(ret, k)
 				}
 			}
 		case LTE:
-			for k, v := range *i.colData {
-				if v.(int) <= i.value.(int) {
+			for k, v := range i.colData.(map[rowID]int) {
+				if v <= i.value.(int) {
 					ret = append(ret, k)
 				}
 			}
 		case GT:
-			for k, v := range *i.colData {
-				if v.(int) > i.value.(int) {
+			for k, v := range i.colData.(map[rowID]int) {
+				if v > i.value.(int) {
 					ret = append(ret, k)
 				}
 			}
 		case GTE:
-			for k, v := range *i.colData {
-				if v.(int) >= i.value.(int) {
+			for k, v := range i.colData.(map[rowID]int) {
+				if v >= i.value.(int) {
 					ret = append(ret, k)
 				}
 			}
@@ -328,14 +328,14 @@ func evaluateCondition(i *Condition) []rowID {
 		switch i.op {
 		case EQ:
 			//TODO: Implement wildcard support
-			for k, v := range *i.colData {
-				if v.(string) == i.value.(string) {
+			for k, v := range i.colData.(map[rowID]string) {
+				if v == i.value.(string) {
 					ret = append(ret, k)
 				}
 			}
 		case NEQ:
-			for k, v := range *i.colData {
-				if v.(string) != i.value.(string) {
+			for k, v := range i.colData.(map[rowID]string) {
+				if v != i.value.(string) {
 					ret = append(ret, k)
 				}
 			}

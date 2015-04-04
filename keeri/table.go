@@ -49,7 +49,7 @@ func (t *table) newRowID() rowID {
 	t.rowCounterLock.Lock()
 	defer t.rowCounterLock.Unlock()
 
-	t.rowCounter += 1
+	t.rowCounter++
 	return t.rowCounter
 }
 

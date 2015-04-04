@@ -19,19 +19,6 @@ type Keeri struct {
 	tblNamesLock sync.RWMutex
 }
 
-// maps column name to column pointer
-//
-// The value int the map below will always
-// be an instance of column.
-//
-// We cannot use column instead of interface{}
-// below, because make(map[rowID]int/char) will
-// fail to match the type map[string]column
-type columnList map[string]interface{}
-
-// Gets the column's value for the given rowID
-type column map[rowID]interface{}
-
 // Creates a new table, with one or more columns
 func (db *Keeri) CreateTable(tableName string, cols ...ColumnDesc) error {
 
@@ -80,8 +67,8 @@ func (db *Keeri) Insert(tableName string, values ...interface{}) (err error) {
 
 	id := tbl.newRowID()
 
-	tbl.dataLock.Lock()
-	defer tbl.dataLock.Unlock()
+	tbl.dataMetaDataLock.Lock()
+	defer tbl.dataMetaDataLock.Unlock()
 
 	defer func() {
 		// TODO: Atomicity yet to be implemented.
@@ -354,7 +341,7 @@ func evaluateCondition(i *Condition) []rowID {
 // write a proper SQL parser or give an API to construct the
 // conditions tree in an easier way.
 func (db *Keeri) Query(tableName string, colNames []string,
-	cTree *ConditionTree) (interface{}, error) {
+	cTree *ConditionTree) ([]interface{}, error) {
 
 	db.tblNamesLock.RLock()
 	tbl := db.tables[tableName]
@@ -363,13 +350,66 @@ func (db *Keeri) Query(tableName string, colNames []string,
 		return nil, errors.New("Table not found")
 	}
 
-	tbl.dataLock.RLock()
-	defer tbl.dataLock.RUnlock()
+	type resultsColsDesc struct {
+		colType    ColumnType
+		mapPointer interface{}
+	}
 
-	matchingRows := cTree.evaluate()
+	var resultsDesc []resultsColsDesc
+	// Validate asked column names and get their data pointers
+	for _, outColName := range colNames {
+		found := false
+		for _, i := range tbl.colsDesc {
+			if i.ColName == outColName {
+				found = true
+				resultsDesc = append(resultsDesc,
+					resultsColsDesc{
+						colType:    i.ColType,
+						mapPointer: tbl.cols[outColName],
+					})
+				break
+			}
+		}
+		if found != true {
+			return nil, errors.New(fmt.Sprintf("Invalid column name", outColName))
+		}
+	}
 
-	// TODO: Add test cases for testing Query and evaluate
-	// TODO: Fetch the data for the matchingRows
+	tbl.dataMetaDataLock.RLock()
+	defer tbl.dataMetaDataLock.RUnlock()
 
-	return matchingRows, nil
+	matchingRowIDs := cTree.evaluate()
+
+	var results []interface{}
+	for _, rID := range matchingRowIDs {
+		var row []interface{}
+		for _, i := range resultsDesc {
+			switch i.colType {
+			case IntColumn:
+				field, ok := (i.mapPointer.(map[rowID]int))[rID]
+				if ok != true {
+					return nil, errors.New(
+						fmt.Sprintf("Data corruption. No data found for rowID [%v] in a column", rID))
+				}
+				row = append(row, field)
+			case StringColumn:
+				field, ok := (i.mapPointer.(map[rowID]string))[rID]
+				if ok != true {
+					return nil, errors.New(
+						fmt.Sprintf("Data corruption. No data found for rowID [%v] in a column", rID))
+				}
+				row = append(row, field)
+			case CustomColumn:
+				field, ok := (i.mapPointer.(map[rowID]interface{}))[rID]
+				if ok != true {
+					return nil, errors.New(
+						fmt.Sprintf("Data corruption. No data found for rowID [%v] in a column", rID))
+				}
+				row = append(row, field)
+			}
+		}
+		results = append(results, row)
+	}
+
+	return results, nil
 }

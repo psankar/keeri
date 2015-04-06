@@ -150,7 +150,8 @@ func TestInsertIntoTableWithIntStringAndCustomColumns(t *testing.T) {
 	t.Log(db.String())
 }
 
-func TestCondition(t *testing.T) {
+// TODO: Should compare the values returned from the db.Query
+func TestFirstLevelConditions(t *testing.T) {
 	db := &Keeri{}
 
 	_ = db.CreateTable("table1",
@@ -205,6 +206,32 @@ func TestCondition(t *testing.T) {
 	}
 
 	res, err = db.Query("table1", []string{"col1", "col2", "col3"}, c2)
+	if err != nil {
+		t.Error(err)
+	}
+	t.Log(res)
+
+	t.Log("SELECT col1, col2 FROM table1 WHERE col2 != 'STRDATA2' OR col1 > 100")
+	c3 := &ConditionTree{
+		op: OR,
+		conditions: []Condition{
+			Condition{
+				op:      NEQ,
+				colType: StringColumn,
+				colData: db.tables["table1"].cols["col2"].(map[rowID]string),
+				value:   "STRDATA2",
+			},
+			Condition{
+				op:      GT,
+				colType: IntColumn,
+				colData: db.tables["table1"].cols["col1"].(map[rowID]int),
+				value:   100,
+			},
+		},
+		children: nil,
+	}
+
+	res, err = db.Query("table1", []string{"col1", "col2"}, c3)
 	if err != nil {
 		t.Error(err)
 	}

@@ -237,3 +237,10 @@ func TestFirstLevelConditions(t *testing.T) {
 	}
 	t.Log(res)
 }
+
+func TestSQLParsing(t *testing.T) {
+	db := &Keeri{}
+
+	input := "SELECT col1, col2, col_3    FROM  table1 WHERE col2='  STRDATA2' AND col1 > 1000 "
+	_, _ = db.Select(input)
+}

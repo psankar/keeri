@@ -337,9 +337,6 @@ func evaluateCondition(i *Condition) []rowID {
 	return ret
 }
 
-// TODO: Receiving the conditions tree as a parameter until we
-// write a proper SQL parser or give an API to construct the
-// conditions tree in an easier way.
 func (db *Keeri) Query(tableName string, colNames []string,
 	cTree *ConditionTree) ([]interface{}, error) {
 
@@ -412,4 +409,12 @@ func (db *Keeri) Query(tableName string, colNames []string,
 	}
 
 	return results, nil
+}
+
+func (db *Keeri) Select(sql string) ([]interface{}, error) {
+	toks, err := tokenize(sql)
+	for _, i := range toks {
+		fmt.Printf("[%v]\n", i)
+	}
+	return nil, err
 }

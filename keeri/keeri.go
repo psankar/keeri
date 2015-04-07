@@ -413,8 +413,15 @@ func (db *Keeri) Query(tableName string, colNames []string,
 
 func (db *Keeri) Select(sql string) ([]interface{}, error) {
 	toks, err := tokenize(sql)
-	for _, i := range toks {
-		fmt.Printf("[%v]\n", i)
+	if err != nil {
+		return nil, err
 	}
-	return nil, err
+
+	fmt.Println()
+	for _, i := range toks {
+		fmt.Printf("[%v]", i)
+	}
+	fmt.Println()
+
+	return nil, nil
 }

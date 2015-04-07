@@ -8,6 +8,7 @@ package keeri
 
 import (
 	"bufio"
+	"errors"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -29,6 +30,16 @@ func scanTokens(data []byte, atEOF bool) (advance int,
 		r, width = utf8.DecodeRune(data[i:])
 		if isDelim(r) {
 			if i == 0 {
+				if r == '\'' || r == '"' {
+					for j, innerWidth := 1, 0; j < len(data); j += innerWidth {
+						var c rune
+						c, innerWidth = utf8.DecodeRune(data[j:])
+						if c == r {
+							return j + innerWidth, data[1 : j+innerWidth-1], nil
+						}
+					}
+					return 0, nil, errors.New("quote not closed")
+				}
 				return width, data[start:width], nil
 			}
 

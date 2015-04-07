@@ -31,6 +31,9 @@ func scanTokens(data []byte, atEOF bool) (advance int,
 			if i == 0 {
 				return width, data[start:width], nil
 			}
+
+			// The below (i+width-1) will be valid only until
+			// all the delimiters are only 1 character wide
 			return i + width - 1, data[start:i], nil
 		}
 	}

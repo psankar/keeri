@@ -9,7 +9,10 @@ package keeri
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
+	"unicode"
+	"unicode/utf8"
 )
 
 // The database descriptor that could hold any number of tables
@@ -411,6 +414,17 @@ func (db *Keeri) Query(tableName string, colNames []string,
 	return results, nil
 }
 
+func skipBlankTokens(toks []string, pos *int) {
+	for {
+		r, _ := utf8.DecodeRuneInString(toks[*pos])
+		if unicode.IsSpace(r) {
+			*pos++
+		} else {
+			break
+		}
+	}
+}
+
 func (db *Keeri) Select(sql string) ([]interface{}, error) {
 	toks, err := tokenize(sql)
 	if err != nil {
@@ -422,6 +436,72 @@ func (db *Keeri) Select(sql string) ([]interface{}, error) {
 		fmt.Printf("[%v]", i)
 	}
 	fmt.Println()
+
+	pos := 0
+	var outCols []string
+	var tableName string
+
+	// Trim any blanks in the prefix of the query
+	skipBlankTokens(toks, &pos)
+
+	if strings.ToUpper(toks[pos]) != "SELECT" {
+		return nil, errors.New(fmt.Sprintf("Expected SELECT Found %s", toks[pos]))
+	}
+
+	// Parse (comma sepearated column names) or (a single column name)
+	// by parsing until the FROM keyword
+	pos++
+	for {
+
+		// Trim any blanks
+		skipBlankTokens(toks, &pos)
+
+		// TODO: Check if valid column name
+		outCols = append(outCols, toks[pos])
+		pos++
+
+		// Trim any blanks
+		skipBlankTokens(toks, &pos)
+
+		if toks[pos] == "," {
+			// More than one column needs to be output for this query
+			pos++
+			continue
+		} else {
+			skipBlankTokens(toks, &pos)
+			if strings.ToUpper(toks[pos]) != "FROM" {
+				return nil, errors.New(fmt.Sprintf("Expected FROM Found %s", toks[pos]))
+			} else {
+				break
+			}
+		}
+	}
+
+	// Parse table names
+	// TODO: A lot of changes are needed below to implement joins
+	pos++
+
+	skipBlankTokens(toks, &pos)
+	tableName = toks[pos]
+	pos++
+
+	skipBlankTokens(toks, &pos)
+
+	if pos > len(sql) {
+		// Parsed until the end of the query
+		goto fetchRecords
+	}
+
+	// Parsing the conditions
+	if strings.ToUpper(toks[pos]) != "WHERE" {
+		return nil, errors.New(fmt.Sprintf("Expected WHERE Found %s", toks[pos]))
+	}
+
+	// TODO: Parse the individual constraints and build the tree
+
+fetchRecords:
+
+	fmt.Println("table name:", tableName, "out columns:", outCols)
 
 	return nil, nil
 }

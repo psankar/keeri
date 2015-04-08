@@ -280,4 +280,24 @@ func TestSQLParsing(t *testing.T) {
 	} else {
 		t.Log("Missing WHERE keyword detected correctly")
 	}
+
+	// Query without conditions
+	input = "SELECT col1,col2,col_3 FROM  table1"
+	t.Log(input)
+	_, err = db.Select(input)
+	if err != nil {
+		t.Error(err)
+	} else {
+		t.Log("Query without conditions parsed correctly")
+	}
+
+	// Query without conditions but whitespaces after the tablename
+	input = "SELECT col1,col2,col_3 FROM  table1  "
+	t.Logf("[%s]\n", input)
+	_, err = db.Select(input)
+	if err != nil {
+		t.Error(err)
+	} else {
+		t.Log("Query without conditions but with whitespaces after the tablename parsed correctly")
+	}
 }

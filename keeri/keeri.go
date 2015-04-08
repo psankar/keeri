@@ -416,6 +416,9 @@ func (db *Keeri) Query(tableName string, colNames []string,
 
 func skipBlankTokens(toks []string, pos *int) {
 	for {
+		if *pos >= len(toks) {
+			return
+		}
 		r, _ := utf8.DecodeRuneInString(toks[*pos])
 		if unicode.IsSpace(r) {
 			*pos++
@@ -487,7 +490,7 @@ func (db *Keeri) Select(sql string) ([]interface{}, error) {
 
 	skipBlankTokens(toks, &pos)
 
-	if pos > len(sql) {
+	if pos >= len(toks) {
 		// Parsed until the end of the query
 		goto fetchRecords
 	}

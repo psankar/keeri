@@ -39,6 +39,11 @@ func scanTokens(data []byte, atEOF bool) (advance int,
 						}
 					}
 					return 0, nil, errors.New("quote not closed")
+				} else if r == '>' || r == '<' {
+					l, iw := utf8.DecodeRune(data[1:])
+					if l == '=' {
+						return width + iw, data[start : width+iw], nil
+					}
 				}
 				return width, data[start:width], nil
 			}

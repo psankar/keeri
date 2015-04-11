@@ -253,7 +253,7 @@ func TestSQLParsing(t *testing.T) {
 	t.Log(db.String())
 
 	// Data contains spaces. Tokenizing should not ignore the embedded spaces
-	input := "SELECT col1, col2, col3 FROM table1 WHERE col2='  STRDATA2' AND col1 > 1000 "
+	input := "SELECT col1, col2, col3 FROM table1 WHERE col2='  STRDATA2' AND col1 >= 1000 "
 	t.Log(input)
 	_, err := db.Select(input)
 	if err != nil {

@@ -448,7 +448,7 @@ func (db *Keeri) Select(sql string) ([]interface{}, error) {
 	skipBlankTokens(toks, &pos)
 
 	if strings.ToUpper(toks[pos]) != "SELECT" {
-		return nil, errors.New(fmt.Sprintf("Expected SELECT Found %s", toks[pos]))
+		return nil, errors.New(fmt.Sprintf("Expected 'SELECT' Found '%s'", toks[pos]))
 	}
 
 	// Parse (comma sepearated column names) or (a single column name)
@@ -473,8 +473,9 @@ func (db *Keeri) Select(sql string) ([]interface{}, error) {
 		} else {
 			skipBlankTokens(toks, &pos)
 			if strings.ToUpper(toks[pos]) != "FROM" {
-				return nil, errors.New(fmt.Sprintf("Expected FROM Found %s", toks[pos]))
+				return nil, errors.New(fmt.Sprintf("Expected 'FROM' Found '%s'", toks[pos]))
 			} else {
+				pos++
 				break
 			}
 		}

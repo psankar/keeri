@@ -241,8 +241,19 @@ func TestFirstLevelConditions(t *testing.T) {
 func TestSQLParsing(t *testing.T) {
 	db := &Keeri{}
 
+	_ = db.CreateTable("table1",
+		ColumnDesc{ColName: "col1", ColType: IntColumn},
+		ColumnDesc{ColName: "col2", ColType: StringColumn},
+		ColumnDesc{ColName: "col3", ColType: CustomColumn})
+
+	_ = db.Insert("table1", 1, "STRDATA1", time.Now())
+	_ = db.Insert("table1", 2, "STRDATA2", point{0, 0})
+	_ = db.Insert("table1", 3, "STRDATA2", point{1, 1})
+	_ = db.Insert("table1", 3000, "STRDATA2", time.Now())
+	t.Log(db.String())
+
 	// Data contains spaces. Tokenizing should not ignore the embedded spaces
-	input := "SELECT col1, col2, col_3 FROM table1 WHERE col2='  STRDATA2' AND col1 > 1000 "
+	input := "SELECT col1, col2, col3 FROM table1 WHERE col2='  STRDATA2' AND col1 > 1000 "
 	t.Log(input)
 	_, err := db.Select(input)
 	if err != nil {
@@ -252,37 +263,38 @@ func TestSQLParsing(t *testing.T) {
 	}
 
 	// Mismatched quote. Tokenizing should give an error
-	input = "SELECT col1, col2, col_3    FROM  table1 WHERE col2='  STRDATA2'' AND col1 > 1000 "
+	input = "SELECT col1, col2, col3    FROM  table1 WHERE col2='  STRDATA2'' AND col1 > 1000 "
 	t.Log(input)
 	_, err = db.Select(input)
 	if err == nil {
 		t.Error("No error for invalid query with unbalanced quotes")
 	} else {
-		t.Log("Mismatched quote detected correctly")
+		t.Logf("Mismatched quote detected correctly ? %s", err)
 	}
 
 	// Column names seperated without space
-	input = "SELECT col1,col2,col_3 FROM  table1 WHERE col2='  STRDATA2' AND col1 > 1000 "
+	input = "SELECT col1,col2,col3 FROM  table1 WHERE col2='  STRDATA2' AND col1 > 1000 "
 	t.Log(input)
 	_, err = db.Select(input)
 	if err != nil {
+		t.Log(err)
 		t.Error("Parsing column names seperated without spaces after comma failed")
 	} else {
 		t.Log("Column names seperated without space parsed correctly")
 	}
 
 	// Missing WHERE keyword
-	input = "SELECT col1,col2,col_3 FROM  table1  col2='  STRDATA2'' AND col1 > 1000 "
+	input = "SELECT col1,col2,col3 FROM  table1  col2='  STRDATA2' AND col1 > 1000 "
 	t.Log(input)
 	_, err = db.Select(input)
 	if err == nil {
 		t.Error("Missing WHERE keyword in the query not detected")
 	} else {
-		t.Log("Missing WHERE keyword detected correctly")
+		t.Logf("Missing WHERE keyword detected correctly ? %s", err)
 	}
 
 	// Query without conditions
-	input = "SELECT col1,col2,col_3 FROM  table1"
+	input = "SELECT col1,col2,col3 FROM  table1"
 	t.Log(input)
 	_, err = db.Select(input)
 	if err != nil {
@@ -292,7 +304,7 @@ func TestSQLParsing(t *testing.T) {
 	}
 
 	// Query without conditions but whitespaces after the tablename
-	input = "SELECT col1,col2,col_3 FROM  table1  "
+	input = "SELECT col1,col2,col3 FROM  table1  "
 	t.Logf("[%s]\n", input)
 	_, err = db.Select(input)
 	if err != nil {

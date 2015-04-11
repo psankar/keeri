@@ -14,12 +14,12 @@ import (
 	"unicode/utf8"
 )
 
-func skipBlankTokens(toks []string, pos *int) {
+func skipEmptyWords(words []string, pos *int) {
 	for {
-		if *pos >= len(toks) {
+		if *pos >= len(words) {
 			return
 		}
-		r, _ := utf8.DecodeRuneInString(toks[*pos])
+		r, _ := utf8.DecodeRuneInString(words[*pos])
 		if unicode.IsSpace(r) {
 			*pos++
 		} else {
@@ -30,13 +30,13 @@ func skipBlankTokens(toks []string, pos *int) {
 
 func parseQuery(sql string) (string, []string, *ConditionTree, error) {
 
-	toks, err := tokenize(sql)
+	words, err := splitSQL(sql)
 	if err != nil {
 		return "", nil, nil, err
 	}
 
 	fmt.Println()
-	for _, i := range toks {
+	for _, i := range words {
 		fmt.Printf("[%v]", i)
 	}
 	fmt.Println()
@@ -46,10 +46,10 @@ func parseQuery(sql string) (string, []string, *ConditionTree, error) {
 	var tableName string
 
 	// Trim any blanks in the prefix of the query
-	skipBlankTokens(toks, &pos)
+	skipEmptyWords(words, &pos)
 
-	if strings.ToUpper(toks[pos]) != "SELECT" {
-		return "", nil, nil, errors.New(fmt.Sprintf("Expected 'SELECT' Found '%s'", toks[pos]))
+	if strings.ToUpper(words[pos]) != "SELECT" {
+		return "", nil, nil, errors.New(fmt.Sprintf("Expected 'SELECT' Found '%s'", words[pos]))
 	}
 
 	// Parse (comma sepearated column names) or (a single column name)
@@ -58,23 +58,23 @@ func parseQuery(sql string) (string, []string, *ConditionTree, error) {
 	for {
 
 		// Trim any blanks
-		skipBlankTokens(toks, &pos)
+		skipEmptyWords(words, &pos)
 
 		// TODO: Check if valid column name
-		outCols = append(outCols, toks[pos])
+		outCols = append(outCols, words[pos])
 		pos++
 
 		// Trim any blanks
-		skipBlankTokens(toks, &pos)
+		skipEmptyWords(words, &pos)
 
-		if toks[pos] == "," {
+		if words[pos] == "," {
 			// More than one column needs to be output for this query
 			pos++
 			continue
 		} else {
-			skipBlankTokens(toks, &pos)
-			if strings.ToUpper(toks[pos]) != "FROM" {
-				return "", nil, nil, errors.New(fmt.Sprintf("Expected 'FROM' Found '%s'", toks[pos]))
+			skipEmptyWords(words, &pos)
+			if strings.ToUpper(words[pos]) != "FROM" {
+				return "", nil, nil, errors.New(fmt.Sprintf("Expected 'FROM' Found '%s'", words[pos]))
 			} else {
 				pos++
 				break
@@ -84,23 +84,23 @@ func parseQuery(sql string) (string, []string, *ConditionTree, error) {
 
 	// Parse table names
 	// TODO: A lot of changes are needed below to implement joins
-	skipBlankTokens(toks, &pos)
-	tableName = toks[pos]
+	skipEmptyWords(words, &pos)
+	tableName = words[pos]
 	pos++
 
-	skipBlankTokens(toks, &pos)
-	if pos >= len(toks) {
+	skipEmptyWords(words, &pos)
+	if pos >= len(words) {
 		// Parsed until the end of the query
 		return tableName, outCols, nil, nil
 	}
 
 	// Parsing the conditions
-	if strings.ToUpper(toks[pos]) != "WHERE" {
-		return "", nil, nil, errors.New(fmt.Sprintf("Expected 'WHERE' Found '%s'", toks[pos]))
+	if strings.ToUpper(words[pos]) != "WHERE" {
+		return "", nil, nil, errors.New(fmt.Sprintf("Expected 'WHERE' Found '%s'", words[pos]))
 	}
 
 	var condTree *ConditionTree
-	condTree, err = parseConditions(toks, pos)
+	condTree, err = parseConditions(words, pos)
 	if err != nil {
 		return "", nil, nil, err
 	}
@@ -108,7 +108,7 @@ func parseQuery(sql string) (string, []string, *ConditionTree, error) {
 	return tableName, outCols, condTree, nil
 }
 
-func parseConditions(toks []string, pos int) (*ConditionTree, error) {
+func parseConditions(words []string, pos int) (*ConditionTree, error) {
 
 	// TODO: As of now, return nil which means all records will be returned
 	return nil, nil
@@ -121,23 +121,23 @@ func parseConditions(toks []string, pos int) (*ConditionTree, error) {
 
 		cond := Condition{}
 
-		skipBlankTokens(toks, &pos)
-		// lhsColName := toks[pos]
+		skipEmptyWords(words, &pos)
+		// lhsColName := words[pos]
 		pos++
 
-		skipBlankTokens(toks, &pos)
-		operator := toks[pos]
+		skipEmptyWords(words, &pos)
+		operator := words[pos]
 
 		switch operator {
 		case "<":
-			if toks[pos+1] == "=" {
+			if words[pos+1] == "=" {
 				cond.op = LTE
 				pos++
 			} else {
 				cond.op = LT
 			}
 		case ">":
-			if toks[pos+1] == "=" {
+			if words[pos+1] == "=" {
 				cond.op = GTE
 				pos++
 			} else {
@@ -146,18 +146,18 @@ func parseConditions(toks []string, pos int) (*ConditionTree, error) {
 		case "=":
 			cond.op = EQ
 		case "!":
-			if toks[pos+1] != "=" {
-				return nil, errors.New(fmt.Sprintf("Expected '!=' Found '%s'", toks[pos+1]))
+			if words[pos+1] != "=" {
+				return nil, errors.New(fmt.Sprintf("Expected '!=' Found '%s'", words[pos+1]))
 			}
 			cond.op = NEQ
 		default:
-			return nil, errors.New(fmt.Sprintf("Expected a Relational Operator, Found '%s'", toks[pos]))
+			return nil, errors.New(fmt.Sprintf("Expected a Relational Operator, Found '%s'", words[pos]))
 		}
 
 		pos++
-		skipBlankTokens(toks, &pos)
+		skipEmptyWords(words, &pos)
 
-		rhs := toks[pos]
+		rhs := words[pos]
 		if rhs == "?" {
 			// TODO: Get the yth parameter from the argv, y++
 		}
@@ -167,12 +167,12 @@ func parseConditions(toks []string, pos int) (*ConditionTree, error) {
 
 		t.conditions = append(t.conditions, cond)
 
-		skipBlankTokens(toks, &pos)
-		if pos > len(toks) {
+		skipEmptyWords(words, &pos)
+		if pos > len(words) {
 			return t, nil
 		}
 
-		op := toks[pos]
+		op := words[pos]
 		if op == "AND" {
 			t.op = AND
 		} else if op != "OR" {
@@ -180,7 +180,7 @@ func parseConditions(toks []string, pos int) (*ConditionTree, error) {
 		}
 
 		pos++
-		skipBlankTokens(toks, &pos)
+		skipEmptyWords(words, &pos)
 	}
 }
 

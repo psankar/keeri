@@ -19,12 +19,12 @@ func isDelim(r rune) bool {
 		(r == '=') || (r == '"') || (r == '\'') || (r == '(') || (r == ')')
 }
 
-func scanTokens(data []byte, atEOF bool) (advance int,
-	token []byte, err error) {
+func scanSQLWords(data []byte, atEOF bool) (advance int,
+	word []byte, err error) {
 
 	start := 0
 
-	// Scan the token by parsing until a whitespace or a delimiter
+	// Scan the word by parsing until a whitespace or a delimiter
 	for width, i := 0, start; i < len(data); i += width {
 		var r rune
 		r, width = utf8.DecodeRune(data[i:])
@@ -54,7 +54,7 @@ func scanTokens(data []byte, atEOF bool) (advance int,
 		}
 	}
 
-	// Last token
+	// Last word
 	if atEOF && len(data) > start {
 		return len(data), data[start:], nil
 	}
@@ -62,9 +62,11 @@ func scanTokens(data []byte, atEOF bool) (advance int,
 	return start, nil, nil
 }
 
-func tokenize(input string) ([]string, error) {
+// This function splits the sql string into
+// words, relational and logical operators
+func splitSQL(input string) ([]string, error) {
 	scanner := bufio.NewScanner(strings.NewReader(input))
-	scanner.Split(scanTokens)
+	scanner.Split(scanSQLWords)
 
 	var ret []string
 	for scanner.Scan() {

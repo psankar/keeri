@@ -10,8 +10,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"unicode"
-	"unicode/utf8"
 )
 
 func skipEmptyWords(words []string, pos *int) {
@@ -19,8 +17,14 @@ func skipEmptyWords(words []string, pos *int) {
 		if *pos >= len(words) {
 			return
 		}
-		r, _ := utf8.DecodeRuneInString(words[*pos])
-		if unicode.IsSpace(r) {
+
+		// This will work as long as the \n \r etc.
+		// on the input SQL string are replaced with
+		// a normal blank space, in the scanner's
+		// scanSQLWords function. If not we will have to
+		// use unicode.IsSpace here. Refer to the history
+		// of this function.
+		if words[*pos] == " " {
 			*pos++
 		} else {
 			break

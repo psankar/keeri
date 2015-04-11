@@ -44,6 +44,14 @@ func scanSQLWords(data []byte, atEOF bool) (advance int,
 					if l == '=' {
 						return width + iw, data[start : width+iw], nil
 					}
+				} else if unicode.IsSpace(r) {
+					// Eliminate all styles of whitespace with
+					// a simple blank whitespace, to make the
+					// skipEmptyWords function in parser simple.
+					//
+					// Refer to its history to know what to do
+					// if we dont do this simplification here.
+					return width, []byte(" "), nil
 				}
 				return width, data[start:width], nil
 			}

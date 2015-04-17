@@ -19,6 +19,9 @@ const (
 	IntColumn ColumnType = iota
 	StringColumn
 	CustomColumn
+
+	// internal column type used while parsing
+	unRecognizedColumn
 )
 
 // Conveys the Name and the Type of any column

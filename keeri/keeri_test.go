@@ -170,8 +170,11 @@ func TestFirstLevelConditions(t *testing.T) {
 		op: OR,
 		conditions: []Condition{
 			Condition{
-				op:      EQ,
-				colType: StringColumn,
+				op: EQ,
+				colDesc: ColumnDesc{
+					ColName: "col2",
+					ColType: StringColumn,
+				},
 				colData: db.tables["table1"].cols["col2"].(map[rowID]string),
 				value:   "STRDATA1",
 			},
@@ -190,14 +193,20 @@ func TestFirstLevelConditions(t *testing.T) {
 		op: AND,
 		conditions: []Condition{
 			Condition{
-				op:      EQ,
-				colType: StringColumn,
+				op: EQ,
+				colDesc: ColumnDesc{
+					ColName: "col2",
+					ColType: StringColumn,
+				},
 				colData: db.tables["table1"].cols["col2"].(map[rowID]string),
 				value:   "STRDATA2",
 			},
 			Condition{
-				op:      LT,
-				colType: IntColumn,
+				op: LT,
+				colDesc: ColumnDesc{
+					ColName: "col1",
+					ColType: IntColumn,
+				},
 				colData: db.tables["table1"].cols["col1"].(map[rowID]int),
 				value:   1000,
 			},
@@ -216,14 +225,20 @@ func TestFirstLevelConditions(t *testing.T) {
 		op: OR,
 		conditions: []Condition{
 			Condition{
-				op:      NEQ,
-				colType: StringColumn,
+				op: NEQ,
+				colDesc: ColumnDesc{
+					ColName: "col2",
+					ColType: StringColumn,
+				},
 				colData: db.tables["table1"].cols["col2"].(map[rowID]string),
 				value:   "STRDATA2",
 			},
 			Condition{
-				op:      GT,
-				colType: IntColumn,
+				op: GT,
+				colDesc: ColumnDesc{
+					ColName: "col1",
+					ColType: IntColumn,
+				},
 				colData: db.tables["table1"].cols["col1"].(map[rowID]int),
 				value:   100,
 			},
@@ -311,5 +326,22 @@ func TestSQLParsing(t *testing.T) {
 		t.Error(err)
 	} else {
 		t.Log("Query without conditions but with whitespaces after the tablename parsed correctly")
+	}
+}
+
+func TestNestedQuery(t *testing.T) {
+	db := &Keeri{}
+
+	_ = db.CreateTable("table1",
+		ColumnDesc{ColName: "col1", ColType: IntColumn},
+		ColumnDesc{ColName: "col2", ColType: StringColumn},
+		ColumnDesc{ColName: "col3", ColType: CustomColumn})
+
+	input := `SELECT col1, col2, col3 FROM table1 WHERE
+	 (age > 18 AND gender='f' OR status='s' AND (col1 < 2 OR col2 >=1) )`
+	t.Log(input)
+	_, err := db.Select(input)
+	if err != nil {
+		t.Error(err)
 	}
 }

@@ -187,7 +187,7 @@ func (db *Keeri) Query(tableName string, colNames []string,
 	return results, nil
 }
 
-func (db *Keeri) Select(sql string) ([]interface{}, error) {
+func (db *Keeri) Select(sql string, args ...interface{}) ([]interface{}, error) {
 	tblName, cols, condTree, err := parseQuery(sql)
 	if err != nil {
 		return nil, err

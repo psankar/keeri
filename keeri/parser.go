@@ -9,6 +9,7 @@ package keeri
 import (
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 )
 
@@ -38,12 +39,6 @@ func parseQuery(sql string) (string, []string, *ConditionTree, error) {
 	if err != nil {
 		return "", nil, nil, err
 	}
-
-	fmt.Println()
-	for _, i := range words {
-		fmt.Printf("[%v]", i)
-	}
-	fmt.Println()
 
 	pos := 0
 	var outCols []string
@@ -103,139 +98,143 @@ func parseQuery(sql string) (string, []string, *ConditionTree, error) {
 		return "", nil, nil, errors.New(fmt.Sprintf("Expected 'WHERE' Found '%s'", words[pos]))
 	}
 
-	var condTree *ConditionTree
-	condTree, err = parseConditions(words, pos)
-	if err != nil {
-		return "", nil, nil, err
-	}
+	_ = removeRelOpsGenerateSQLToks(words[pos+1:])
+	// TODO: Grab the tokens generated above and generate a single
+	// condition tree that encompasses everything correctly
 
-	return tableName, outCols, condTree, nil
+	return tableName, outCols, nil, nil
 }
 
-func parseConditions(words []string, pos int) (*ConditionTree, error) {
+type sqlTokType int
 
-	// TODO: As of now, return nil which means all records will be returned
-	return nil, nil
+const (
+	LEFT_PARAN_TOK sqlTokType = iota
+	RIGHT_PARAN_TOK
+	CONDITION_PTR_TOK
+	AND_TOK
+	OR_TOK
+)
 
-	t := &ConditionTree{}
+type sqlTokens struct {
+	tokType sqlTokType
+	value   interface{}
+}
 
-	t.op = OR
+func (t sqlTokens) String() string {
+	switch t.tokType {
+	case LEFT_PARAN_TOK:
+		return fmt.Sprint("(")
+	case RIGHT_PARAN_TOK:
+		return fmt.Sprint(")")
+	case CONDITION_PTR_TOK:
+		return fmt.Sprintf("%s", t.value.(*Condition))
+	case AND_TOK:
+		return fmt.Sprint("AND")
+	case OR_TOK:
+		return fmt.Sprint("OR")
+	}
+	panic("Unreachable")
+}
 
-	for {
+// NOTE: Caller must set the op field of the condition,
+// and that is why this is called a 'Partial' function
+func createPartialCondTok(words []string, lhsPos, pos *int) *sqlTokens {
+	if *lhsPos == -1 {
+		panic(fmt.Errorf("No operand found for operator at '%s' ", words[*pos]))
+	}
 
-		cond := Condition{}
+	*pos++
+	skipEmptyWords(words, pos)
 
-		skipEmptyWords(words, &pos)
-		// lhsColName := words[pos]
-		pos++
+	cond := &Condition{
+		op: LT,
+		colDesc: ColumnDesc{
+			ColName: words[*lhsPos],
+			ColType: unRecognizedColumn,
+		},
+		value: words[*pos],
+	}
 
-		skipEmptyWords(words, &pos)
-		operator := words[pos]
+	tok := &sqlTokens{
+		CONDITION_PTR_TOK,
+		cond,
+	}
+	*lhsPos = -1
 
-		switch operator {
+	return tok
+}
+
+// This function removes the relational opera[tors|nds]
+// in the incoming sql words, generates an
+// array of tokens where each relational operator
+// and the operands would have been replaced with
+// a condition object
+func removeRelOpsGenerateSQLToks(words []string) (ret []sqlTokens) {
+
+	lhsPos := -1
+
+	for i := 0; i < len(words); i++ {
+
+		switch words[i] {
+		case "(":
+			ret = append(ret, sqlTokens{LEFT_PARAN_TOK, nil})
+		case ")":
+			ret = append(ret, sqlTokens{RIGHT_PARAN_TOK, nil})
+		case "AND":
+			ret = append(ret, sqlTokens{AND_TOK, nil})
+		case "OR":
+			ret = append(ret, sqlTokens{OR_TOK, nil})
+
+		// Relational Operators
 		case "<":
-			if words[pos+1] == "=" {
-				cond.op = LTE
-				pos++
-			} else {
-				cond.op = LT
-			}
+			tok := createPartialCondTok(words, &lhsPos, &i)
+			cond := tok.value.(*Condition)
+			cond.op = LT
+			ret = append(ret, *tok)
+		case "<=":
+			tok := createPartialCondTok(words, &lhsPos, &i)
+			cond := tok.value.(*Condition)
+			cond.op = LTE
+			ret = append(ret, *tok)
 		case ">":
-			if words[pos+1] == "=" {
-				cond.op = GTE
-				pos++
-			} else {
-				cond.op = GT
-			}
+			tok := createPartialCondTok(words, &lhsPos, &i)
+			cond := tok.value.(*Condition)
+			cond.op = GT
+			ret = append(ret, *tok)
+		case ">=":
+			tok := createPartialCondTok(words, &lhsPos, &i)
+			cond := tok.value.(*Condition)
+			cond.op = GTE
+			ret = append(ret, *tok)
 		case "=":
+			tok := createPartialCondTok(words, &lhsPos, &i)
+			cond := tok.value.(*Condition)
 			cond.op = EQ
-		case "!":
-			if words[pos+1] != "=" {
-				return nil, errors.New(fmt.Sprintf("Expected '!=' Found '%s'", words[pos+1]))
-			}
+			ret = append(ret, *tok)
+		case "!=":
+			tok := createPartialCondTok(words, &lhsPos, &i)
+			cond := tok.value.(*Condition)
 			cond.op = NEQ
+			ret = append(ret, *tok)
+
+		case " ":
+			//Do nothing
+
 		default:
-			return nil, errors.New(fmt.Sprintf("Expected a Relational Operator, Found '%s'", words[pos]))
+			// column name operand for a relational operator
+			if lhsPos != -1 {
+				panic(fmt.Errorf("Invalid tokens: %s %s", words[lhsPos], words[i]))
+			}
+
+			lhsPos = i
 		}
-
-		pos++
-		skipEmptyWords(words, &pos)
-
-		rhs := words[pos]
-		if rhs == "?" {
-			// TODO: Get the yth parameter from the argv, y++
-		}
-
-		cond.value = rhs
-		pos++
-
-		t.conditions = append(t.conditions, cond)
-
-		skipEmptyWords(words, &pos)
-		if pos > len(words) {
-			return t, nil
-		}
-
-		op := words[pos]
-		if op == "AND" {
-			t.op = AND
-		} else if op != "OR" {
-			return nil, errors.New(fmt.Sprintf("Expected AND or OR, Found '%s'", op))
-		}
-
-		pos++
-		skipEmptyWords(words, &pos)
 	}
-}
 
-func dummy() {
-	input := []string{
-		"(",
-		"age",
-		" ",
-		">",
-		" ",
-		"18",
-		" ",
-		"AND",
-		" ",
-		"gender",
-		" ",
-		" ",
-		"=",
-		" ",
-		" ",
-		"f",
-		" ",
-		"OR",
-		" ",
-		" ",
-		"status",
-		" ",
-		"=",
-		"single",
-		" ",
-		"AND",
-		" ",
-		"(",
-		" ",
-		"col1",
-		" ",
-		"<",
-		" ",
-		"2",
-		" ",
-		"OR",
-		" ",
-		"col2",
-		" ",
-		">=",
-		" ",
-		"1",
-		" ",
-		")",
-		" ",
-		")"}
+	if lhsPos != -1 {
+		panic(fmt.Errorf("Invalid token: %s", words[lhsPos]))
+	}
 
-	fmt.Println(input)
+	log.Printf("The sqltokens from the sql words are as follows:\n%v\n\n", ret)
+
+	return
 }

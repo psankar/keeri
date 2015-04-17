@@ -9,6 +9,8 @@ package keeri
 import (
 	"bufio"
 	"errors"
+	"fmt"
+	"log"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -83,5 +85,12 @@ func splitSQL(input string) ([]string, error) {
 	if err := scanner.Err(); err != nil {
 		return nil, err
 	}
+
+	s := ""
+	for _, i := range ret {
+		s += fmt.Sprintf("[%v]", i)
+	}
+	log.Println("The SQL statement is split into the following words:\n", s)
+
 	return ret, nil
 }

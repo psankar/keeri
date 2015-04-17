@@ -6,7 +6,10 @@
 
 package keeri
 
-import "sync"
+import (
+	"fmt"
+	"sync"
+)
 
 type RelationalOperator int
 
@@ -22,7 +25,7 @@ const (
 // TODO: JOINs are not supported. This struct will change.
 type Condition struct {
 	op      RelationalOperator
-	colType ColumnType
+	colDesc ColumnDesc
 	colData interface{}
 
 	// NOTE:
@@ -30,6 +33,27 @@ type Condition struct {
 	// to avoid repeated checks for same LHS for different RHS
 	// when we implement support for Joins
 	value interface{}
+}
+
+func (c Condition) String() string {
+	ret := "!{"
+	ret += c.colDesc.ColName
+	switch c.op {
+	case LT:
+		ret += "<"
+	case LTE:
+		ret += "<="
+	case GT:
+		ret += ">"
+	case GTE:
+		ret += ">="
+	case EQ:
+		ret += "="
+	case NEQ:
+		ret += "!="
+	}
+	ret += fmt.Sprintf("%v}!", c.value)
+	return ret
 }
 
 type LogicalOperator int
@@ -167,7 +191,7 @@ func (t *ConditionTree) evaluate() []rowID {
 func evaluateCondition(i *Condition) []rowID {
 	var ret []rowID
 
-	switch i.colType {
+	switch i.colDesc.ColType {
 	case IntColumn:
 		switch i.op {
 		case EQ:

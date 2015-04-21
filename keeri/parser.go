@@ -7,6 +7,8 @@
 package keeri
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -100,7 +102,13 @@ func parseQuery(sql string) (string, []string, *ConditionTree, error) {
 
 	toks := removeRelOpsGenerateSQLToks(words[pos+1:])
 	cTree := generateCondTree(toks, 0, len(toks)-1, 0)
-	log.Println(cTree)
+
+	buf := new(bytes.Buffer)
+	e := json.Indent(buf, []byte(cTree.String()), "", "  ")
+	if e != nil {
+		panic(e)
+	}
+	log.Println(buf)
 
 	return tableName, outCols, nil, nil
 }

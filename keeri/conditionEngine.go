@@ -8,6 +8,7 @@ package keeri
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 )
 
@@ -283,7 +284,8 @@ func (c ConditionTree) String() string {
 		for _, i := range c.children {
 			chi += fmt.Sprintf("%s,", i)
 		}
-		chi += fmt.Sprintf("\b]")
+		chi = strings.TrimSuffix(chi, ",")
+		chi += fmt.Sprintf("]")
 	}
 
 	con := ""
@@ -294,9 +296,10 @@ func (c ConditionTree) String() string {
 		for _, i := range c.conditions {
 			con += fmt.Sprintf("%s,", i)
 		}
-		con += fmt.Sprintf("\b]")
+		con = strings.TrimSuffix(con, ",")
+		con += fmt.Sprintf("]")
 	}
 
-	return fmt.Sprintf("\n{\n\"logOp\":\"%s\",\n\"con\":%s,\n\"chi\":%s\n}",
+	return fmt.Sprintf("\n{\n\"LogicalOperator\":\"%s\",\n\"Conditions\":%s,\n\"Children\":%s\n}",
 		c.op, con, chi)
 }

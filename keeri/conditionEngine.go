@@ -36,7 +36,7 @@ type Condition struct {
 }
 
 func (c Condition) String() string {
-	ret := "!{"
+	ret := "\""
 	ret += c.colDesc.ColName
 	switch c.op {
 	case LT:
@@ -52,7 +52,7 @@ func (c Condition) String() string {
 	case NEQ:
 		ret += "!="
 	}
-	ret += fmt.Sprintf("%v}!", c.value)
+	ret += fmt.Sprintf("%v\"", c.value)
 	return ret
 }
 
@@ -62,6 +62,17 @@ const (
 	OR LogicalOperator = iota
 	AND
 )
+
+func (l LogicalOperator) String() string {
+	switch l {
+	case AND:
+		return fmt.Sprint("AND")
+	case OR:
+		return fmt.Sprint("OR")
+	default:
+		panic("Unknown logical operator")
+	}
+}
 
 type ConditionTree struct {
 	op         LogicalOperator
@@ -257,4 +268,35 @@ func evaluateCondition(i *Condition) []rowID {
 	}
 
 	return ret
+}
+
+// TODO: Should evaluate if using the
+// `json: tag will help remove some code
+// below and thus making json.(Un)Marshal
+// to be an alternative to the next function
+func (c ConditionTree) String() string {
+	chi := ""
+	if c.children == nil {
+		chi += "\"\""
+	} else {
+		chi += fmt.Sprintf("[")
+		for _, i := range c.children {
+			chi += fmt.Sprintf("%s,", i)
+		}
+		chi += fmt.Sprintf("\b]")
+	}
+
+	con := ""
+	if c.conditions == nil {
+		con += "\"\""
+	} else {
+		con += fmt.Sprintf("[")
+		for _, i := range c.conditions {
+			con += fmt.Sprintf("%s,", i)
+		}
+		con += fmt.Sprintf("\b]")
+	}
+
+	return fmt.Sprintf("\n{\n\"logOp\":\"%s\",\n\"con\":%s,\n\"chi\":%s\n}",
+		c.op, con, chi)
 }

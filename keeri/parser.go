@@ -98,9 +98,9 @@ func parseQuery(sql string) (string, []string, *ConditionTree, error) {
 		return "", nil, nil, errors.New(fmt.Sprintf("Expected 'WHERE' Found '%s'", words[pos]))
 	}
 
-	_ = removeRelOpsGenerateSQLToks(words[pos+1:])
-	// TODO: Grab the tokens generated above and generate a single
-	// condition tree that encompasses everything correctly
+	toks := removeRelOpsGenerateSQLToks(words[pos+1:])
+	cTree := generateCondTree(toks, 0, len(toks)-1, 0)
+	log.Println(cTree)
 
 	return tableName, outCols, nil, nil
 }
@@ -111,6 +111,7 @@ const (
 	LEFT_PARAN_TOK sqlTokType = iota
 	RIGHT_PARAN_TOK
 	CONDITION_PTR_TOK
+	CONDITION_TREE_PTR_TOK
 	AND_TOK
 	OR_TOK
 )
@@ -128,6 +129,8 @@ func (t sqlTokens) String() string {
 		return fmt.Sprint(")")
 	case CONDITION_PTR_TOK:
 		return fmt.Sprintf("%s", t.value.(*Condition))
+	case CONDITION_TREE_PTR_TOK:
+		return fmt.Sprint("CondtionTree")
 	case AND_TOK:
 		return fmt.Sprint("AND")
 	case OR_TOK:
@@ -237,4 +240,169 @@ func removeRelOpsGenerateSQLToks(words []string) (ret []sqlTokens) {
 	log.Printf("The sqltokens from the sql words are as follows:\n%v\n\n", ret)
 
 	return
+}
+
+func generateCondTree(toks []sqlTokens, lo, hi, recursionLevel int) *ConditionTree {
+
+	log.Println(recursionLevel, "Entering generateCondTree with", lo, hi, toks[lo:hi])
+
+	// Convert all expressions within parantheses into
+	// ConditionTrees and update the toks
+	//
+	// At this stage, toks can have Conditions, ConditionTrees,
+	// Parantheses and LogicalOperators; But no relational operators
+	for {
+		openParLoc := -1
+		parenFound := false
+
+		for pos := lo; pos <= hi; pos++ {
+			log.Println(recursionLevel, "Evaluating subexpressions", pos, lo, hi, openParLoc, parenFound)
+			if toks[pos].tokType == LEFT_PARAN_TOK {
+				openParLoc = pos
+			} else if toks[pos].tokType == RIGHT_PARAN_TOK {
+				if openParLoc == -1 {
+					panic("Mismatched parantheses")
+				}
+				parenFound = true
+
+				cTree := generateCondTree(toks, openParLoc+1, pos-1, recursionLevel+1)
+
+				t := toks[:openParLoc]
+				t = append(t, sqlTokens{CONDITION_TREE_PTR_TOK, cTree})
+				if pos+1 <= hi {
+					log.Println(recursionLevel, "After the cond tree, appending", pos, toks[pos+1:])
+					t = append(t, toks[pos+1:]...)
+				}
+				toks = t
+				hi -= (pos - openParLoc)
+				log.Println(recursionLevel, "After the recursive call:", toks, len(toks), pos, lo, hi)
+				break
+			}
+		}
+
+		if parenFound == false {
+			if openParLoc != -1 {
+				panic("Mismatched parantheses")
+			}
+			break
+		}
+	}
+
+	log.Println(recursionLevel, "After parentheses removal, the new bounds are:", lo, hi)
+
+	// Handle AND tokens
+	// At this stage, toks[lo:hi] can have only Conditions,
+	// ConditionTrees and LogicalOperators.
+	//
+	// toks[lo:hi] should not have any parantheses
+	for pos := lo; pos < hi; pos++ {
+		if toks[pos].tokType == AND_TOK {
+
+			cTree := &ConditionTree{}
+			cTree.op = AND
+
+			if pos == lo {
+				panic("Unexpected AND token")
+			}
+
+			// LHS of the AND keyword
+			if toks[pos-1].tokType == CONDITION_PTR_TOK {
+				cTree.conditions = append(cTree.conditions, *toks[pos-1].value.(*Condition))
+			} else if toks[pos-1].tokType == CONDITION_TREE_PTR_TOK {
+				cTree.children = append(cTree.children, toks[pos-1].value.(*ConditionTree))
+			} else {
+				panic("Malformed Query: Unexepected token before AND keyword")
+			}
+
+			if (pos + 1) > hi {
+				panic("Malformed Query: No token found after AND keyword")
+			}
+
+			// RHS of the AND keyword
+			if toks[pos+1].tokType == CONDITION_PTR_TOK {
+				cTree.conditions = append(cTree.conditions, *toks[pos+1].value.(*Condition))
+			} else if toks[pos+1].tokType == CONDITION_TREE_PTR_TOK {
+				cTree.children = append(cTree.children, toks[pos+1].value.(*ConditionTree))
+			} else {
+				panic("Malformed Query: Unexepected token after AND keyword")
+			}
+
+			// Insert the new cTree in place of the AND keyword
+			// and the tokens on either side
+			t := toks[:pos-1]
+			t = append(t, sqlTokens{CONDITION_TREE_PTR_TOK, cTree})
+			if pos+2 <= hi {
+				t = append(t, toks[pos+2:]...)
+			}
+			toks = t
+
+			// Two tokens are removed in the toks
+			hi -= 2
+
+			// This is needed to retain pos in the same position,
+			// as the for loop 3rd statement will also increment pos
+			pos--
+		}
+	}
+	log.Println(recursionLevel, "After AND evaluation", toks)
+
+	// Handle OR tokens
+	// At this stage, toks[lo:hi] can have only Conditions,
+	// ConditionTrees and LogicalOperators.
+	//
+	// toks[lo:hi] should not have any parantheses
+	for pos := lo; pos < hi; pos++ {
+		if toks[pos].tokType == OR_TOK {
+
+			cTree := &ConditionTree{}
+			cTree.op = OR
+
+			if pos == lo {
+				panic("Unexpected OR token")
+			}
+
+			// LHS of the AND keyword
+			if toks[pos-1].tokType == CONDITION_PTR_TOK {
+				cTree.conditions = append(cTree.conditions, *toks[pos-1].value.(*Condition))
+			} else if toks[pos-1].tokType == CONDITION_TREE_PTR_TOK {
+				cTree.children = append(cTree.children, toks[pos-1].value.(*ConditionTree))
+			} else {
+				panic("Malformed Query: Unexepected token before OR keyword")
+			}
+
+			if (pos + 1) > hi {
+				panic("Malformed Query: No token found after OR keyword")
+			}
+
+			// RHS of the AND keyword
+			if toks[pos+1].tokType == CONDITION_PTR_TOK {
+				cTree.conditions = append(cTree.conditions, *toks[pos+1].value.(*Condition))
+			} else if toks[pos+1].tokType == CONDITION_TREE_PTR_TOK {
+				cTree.children = append(cTree.children, toks[pos+1].value.(*ConditionTree))
+			} else {
+				panic("Malformed Query: Unexepected token after OR keyword")
+			}
+
+			// Insert the new cTree in place of the AND keyword
+			// and the tokens on either side
+			t := toks[:pos-1]
+			t = append(t, sqlTokens{CONDITION_TREE_PTR_TOK, cTree})
+			if pos+2 <= hi {
+				t = append(t, toks[pos+2:]...)
+			}
+			log.Println(recursionLevel, "toks changed for OR", t)
+			toks = t
+
+			// Two tokens are removed in the toks
+			hi -= 2
+
+			// This is needed to retain pos in the same position,
+			// as the for loop 3rd statement will also increment pos
+			pos--
+		}
+	}
+
+	log.Println(recursionLevel, "After OR evaluation", toks)
+
+	return toks[lo].value.(*ConditionTree)
 }

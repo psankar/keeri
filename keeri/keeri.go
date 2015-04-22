@@ -196,6 +196,7 @@ func (db *Keeri) Select(sql string, args ...interface{}) (ret []interface{}, err
 		// TODO: Atomicity yet to be implemented.
 		// Partial inserts will exist in case of errors
 		if r := recover(); r != nil {
+			ret = nil
 			err = r.(error)
 		}
 	}()
@@ -206,7 +207,7 @@ func (db *Keeri) Select(sql string, args ...interface{}) (ret []interface{}, err
 		buf := new(bytes.Buffer)
 		err = json.Indent(buf, []byte(condTree.String()), "", "  ")
 		if err != nil {
-			return nil, err
+			return nil, errors.New("Error converting condTree into a JSON string")
 		}
 		log.Println(buf)
 	}

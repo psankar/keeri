@@ -7,9 +7,6 @@
 package keeri
 
 import (
-	"bytes"
-	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
 	"strings"
@@ -41,13 +38,12 @@ func skipEmptyWords(words []string, pos *int) {
 // (parser) should take care of filling the column types in the condTree
 // that is returned, before using it in an eval function.
 // TODO: Probably a good idea to add a 'state' in the CondTree struct, which
-// could be updated after colTypes are resolved and checked in evaluate func.
-// TODO: May be the error return value could be replaced by just panic
-func parseQuery(sql string) (string, []string, *ConditionTree, error) {
+// could be updated after colTypes are resolved and checked in evaluate func
+func parseQuery(sql string) (string, []string, *ConditionTree) {
 
 	words, err := splitSQL(sql)
 	if err != nil {
-		return "", nil, nil, err
+		panic(err)
 	}
 
 	pos := 0
@@ -58,7 +54,7 @@ func parseQuery(sql string) (string, []string, *ConditionTree, error) {
 	skipEmptyWords(words, &pos)
 
 	if strings.ToUpper(words[pos]) != "SELECT" {
-		return "", nil, nil, errors.New(fmt.Sprintf("Expected 'SELECT' Found '%s'", words[pos]))
+		panic(fmt.Errorf("Expected 'SELECT' Found '%s'", words[pos]))
 	}
 
 	// Parse (comma sepearated column names) or (a single column name)
@@ -83,7 +79,7 @@ func parseQuery(sql string) (string, []string, *ConditionTree, error) {
 		} else {
 			skipEmptyWords(words, &pos)
 			if strings.ToUpper(words[pos]) != "FROM" {
-				return "", nil, nil, errors.New(fmt.Sprintf("Expected 'FROM' Found '%s'", words[pos]))
+				panic(fmt.Errorf("Expected 'FROM' Found '%s'", words[pos]))
 			} else {
 				pos++
 				break
@@ -100,25 +96,18 @@ func parseQuery(sql string) (string, []string, *ConditionTree, error) {
 	skipEmptyWords(words, &pos)
 	if pos >= len(words) {
 		// Parsed until the end of the query
-		return tableName, outCols, nil, nil
+		return tableName, outCols, nil
 	}
 
 	// Parsing the conditions
 	if strings.ToUpper(words[pos]) != "WHERE" {
-		return "", nil, nil, errors.New(fmt.Sprintf("Expected 'WHERE' Found '%s'", words[pos]))
+		panic(fmt.Errorf("Expected 'WHERE' Found '%s'", words[pos]))
 	}
 
 	toks := removeRelOpsGenerateSQLToks(words[pos+1:])
 	cTree := generateCondTree(toks, 0, len(toks)-1, 0)
 
-	buf := new(bytes.Buffer)
-	e := json.Indent(buf, []byte(cTree.String()), "", "  ")
-	if e != nil {
-		panic(e)
-	}
-	log.Println(buf)
-
-	return tableName, outCols, nil, nil
+	return tableName, outCols, cTree
 }
 
 // NOTE: Caller must set the op field of the condition,

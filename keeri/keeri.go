@@ -7,8 +7,11 @@
 package keeri
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"sync"
 )
 
@@ -187,10 +190,25 @@ func (db *Keeri) Query(tableName string, colNames []string,
 	return results, nil
 }
 
-func (db *Keeri) Select(sql string, args ...interface{}) ([]interface{}, error) {
-	tblName, cols, condTree, err := parseQuery(sql)
-	if err != nil {
-		return nil, err
+func (db *Keeri) Select(sql string, args ...interface{}) (ret []interface{}, err error) {
+
+	defer func() {
+		// TODO: Atomicity yet to be implemented.
+		// Partial inserts will exist in case of errors
+		if r := recover(); r != nil {
+			err = r.(error)
+		}
+	}()
+
+	tblName, cols, condTree := parseQuery(sql)
+
+	if condTree != nil {
+		buf := new(bytes.Buffer)
+		err = json.Indent(buf, []byte(condTree.String()), "", "  ")
+		if err != nil {
+			return nil, err
+		}
+		log.Println(buf)
 	}
 
 	db.tblNamesLock.RLock()
@@ -201,5 +219,7 @@ func (db *Keeri) Select(sql string, args ...interface{}) ([]interface{}, error) 
 		return nil, errors.New(fmt.Sprintf("Invalid table name '%s'", tblName))
 	}
 
-	return db.Query(tblName, cols, condTree)
+	// TODO: Set the colTypes in the condTree
+	ret, err = db.Query(tblName, cols, condTree)
+	return
 }

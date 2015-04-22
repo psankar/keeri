@@ -220,6 +220,6 @@ func (db *Keeri) Select(sql string, args ...interface{}) (ret []interface{}, err
 	}
 
 	// TODO: Set the colTypes in the condTree
-	ret, err = db.Query(tblName, cols, condTree)
+	ret, err = db.Query(tblName, cols, nil)
 	return
 }

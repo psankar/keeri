@@ -12,69 +12,6 @@ import (
 	"sync"
 )
 
-type RelationalOperator int
-
-const (
-	EQ RelationalOperator = iota
-	NEQ
-	LT
-	LTE
-	GT
-	GTE
-)
-
-// TODO: JOINs are not supported. This struct will change.
-type Condition struct {
-	op      RelationalOperator
-	colDesc ColumnDesc
-	colData interface{}
-
-	// NOTE:
-	// The below value could become an array of interfaces
-	// to avoid repeated checks for same LHS for different RHS
-	// when we implement support for Joins
-	value interface{}
-}
-
-func (c Condition) String() string {
-	ret := "\""
-	ret += c.colDesc.ColName
-	switch c.op {
-	case LT:
-		ret += "<"
-	case LTE:
-		ret += "<="
-	case GT:
-		ret += ">"
-	case GTE:
-		ret += ">="
-	case EQ:
-		ret += "="
-	case NEQ:
-		ret += "!="
-	}
-	ret += fmt.Sprintf("%v\"", c.value)
-	return ret
-}
-
-type LogicalOperator int
-
-const (
-	OR LogicalOperator = iota
-	AND
-)
-
-func (l LogicalOperator) String() string {
-	switch l {
-	case AND:
-		return fmt.Sprint("AND")
-	case OR:
-		return fmt.Sprint("OR")
-	default:
-		panic("Unknown logical operator")
-	}
-}
-
 type ConditionTree struct {
 	op         LogicalOperator
 	conditions []Condition

@@ -35,6 +35,14 @@ func skipEmptyWords(words []string, pos *int) {
 	}
 }
 
+// This function takes an incoming SQL string and creates a condition tree
+// out of the WHERE clause nested conditions. However, the conditions will
+// have just the column names resolved but not the column types. The caller
+// (parser) should take care of filling the column types in the condTree
+// that is returned, before using it in an eval function.
+// TODO: Probably a good idea to add a 'state' in the CondTree struct, which
+// could be updated after colTypes are resolved and checked in evaluate func.
+// TODO: May be the error return value could be replaced by just panic
 func parseQuery(sql string) (string, []string, *ConditionTree, error) {
 
 	words, err := splitSQL(sql)
@@ -111,40 +119,6 @@ func parseQuery(sql string) (string, []string, *ConditionTree, error) {
 	log.Println(buf)
 
 	return tableName, outCols, nil, nil
-}
-
-type sqlTokType int
-
-const (
-	LEFT_PARAN_TOK sqlTokType = iota
-	RIGHT_PARAN_TOK
-	CONDITION_PTR_TOK
-	CONDITION_TREE_PTR_TOK
-	AND_TOK
-	OR_TOK
-)
-
-type sqlTokens struct {
-	tokType sqlTokType
-	value   interface{}
-}
-
-func (t sqlTokens) String() string {
-	switch t.tokType {
-	case LEFT_PARAN_TOK:
-		return fmt.Sprint("(")
-	case RIGHT_PARAN_TOK:
-		return fmt.Sprint(")")
-	case CONDITION_PTR_TOK:
-		return fmt.Sprintf("%s", t.value.(*Condition))
-	case CONDITION_TREE_PTR_TOK:
-		return fmt.Sprint("CondtionTree")
-	case AND_TOK:
-		return fmt.Sprint("AND")
-	case OR_TOK:
-		return fmt.Sprint("OR")
-	}
-	panic("Unreachable")
 }
 
 // NOTE: Caller must set the op field of the condition,

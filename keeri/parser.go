@@ -105,7 +105,7 @@ func parseQuery(sql string) (string, []string, *ConditionTree) {
 	}
 
 	toks := removeRelOpsGenerateSQLToks(words[pos+1:])
-	cTree := generateCondTree(toks, 0, len(toks)-1, 0)
+	cTree := generateCondTree(toks, 0, len(toks)-1)
 
 	return tableName, outCols, cTree
 }
@@ -213,9 +213,7 @@ func removeRelOpsGenerateSQLToks(words []string) (ret []sqlTokens) {
 	return
 }
 
-func generateCondTree(toks []sqlTokens, lo, hi, recursionLevel int) *ConditionTree {
-
-	log.Println(recursionLevel, "Entering generateCondTree with", lo, hi, toks[lo:hi])
+func generateCondTree(toks []sqlTokens, lo, hi int) *ConditionTree {
 
 	// Convert all expressions within parantheses into
 	// ConditionTrees and update the toks
@@ -227,7 +225,6 @@ func generateCondTree(toks []sqlTokens, lo, hi, recursionLevel int) *ConditionTr
 		parenFound := false
 
 		for pos := lo; pos <= hi; pos++ {
-			log.Println(recursionLevel, "Evaluating subexpressions", pos, lo, hi, openParLoc, parenFound)
 			if toks[pos].tokType == LEFT_PARAN_TOK {
 				openParLoc = pos
 			} else if toks[pos].tokType == RIGHT_PARAN_TOK {
@@ -236,17 +233,15 @@ func generateCondTree(toks []sqlTokens, lo, hi, recursionLevel int) *ConditionTr
 				}
 				parenFound = true
 
-				cTree := generateCondTree(toks, openParLoc+1, pos-1, recursionLevel+1)
+				cTree := generateCondTree(toks, openParLoc+1, pos-1)
 
 				t := toks[:openParLoc]
 				t = append(t, sqlTokens{CONDITION_TREE_PTR_TOK, cTree})
 				if pos+1 <= hi {
-					log.Println(recursionLevel, "After the cond tree, appending", pos, toks[pos+1:])
 					t = append(t, toks[pos+1:]...)
 				}
 				toks = t
 				hi -= (pos - openParLoc)
-				log.Println(recursionLevel, "After the recursive call:", toks, len(toks), pos, lo, hi)
 				break
 			}
 		}
@@ -258,8 +253,6 @@ func generateCondTree(toks []sqlTokens, lo, hi, recursionLevel int) *ConditionTr
 			break
 		}
 	}
-
-	log.Println(recursionLevel, "After parentheses removal, the new bounds are:", lo, hi)
 
 	// Handle AND tokens
 	// At this stage, toks[lo:hi] can have only Conditions,
@@ -315,7 +308,6 @@ func generateCondTree(toks []sqlTokens, lo, hi, recursionLevel int) *ConditionTr
 			pos--
 		}
 	}
-	log.Println(recursionLevel, "After AND evaluation", toks)
 
 	// Handle OR tokens
 	// At this stage, toks[lo:hi] can have only Conditions,
@@ -361,7 +353,6 @@ func generateCondTree(toks []sqlTokens, lo, hi, recursionLevel int) *ConditionTr
 			if pos+2 <= hi {
 				t = append(t, toks[pos+2:]...)
 			}
-			log.Println(recursionLevel, "toks changed for OR", t)
 			toks = t
 
 			// Two tokens are removed in the toks
@@ -372,8 +363,6 @@ func generateCondTree(toks []sqlTokens, lo, hi, recursionLevel int) *ConditionTr
 			pos--
 		}
 	}
-
-	log.Println(recursionLevel, "After OR evaluation", toks)
 
 	return toks[lo].value.(*ConditionTree)
 }

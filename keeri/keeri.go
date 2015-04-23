@@ -236,7 +236,6 @@ func resolveColDetails(tbl *table, i *ConditionTree) {
 		colName := j.colDesc.ColName
 		for _, k := range tbl.colsDesc {
 			if k.ColName == colName {
-				log.Println("Setting coltype for column", colName, k.ColType)
 				j.colDesc.ColType = k.ColType
 				j.colData = tbl.cols[colName]
 

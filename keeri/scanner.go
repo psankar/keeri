@@ -18,7 +18,8 @@ import (
 
 func isDelim(r rune) bool {
 	return unicode.IsSpace(r) || (r == ',') || (r == '<') || (r == '>') ||
-		(r == '=') || (r == '"') || (r == '\'') || (r == '(') || (r == ')')
+		(r == '=') || (r == '"') || (r == '\'') || (r == '(') || (r == ')' ||
+		(r == '!'))
 }
 
 func scanSQLWords(data []byte, atEOF bool) (advance int,
@@ -44,8 +45,15 @@ func scanSQLWords(data []byte, atEOF bool) (advance int,
 				} else if r == '>' || r == '<' {
 					l, iw := utf8.DecodeRune(data[1:])
 					if l == '=' {
-						return width + iw, data[start : width+iw], nil
+						// assert width == 1 && iw == 1 && start == 0
+						return 1 + iw, data[start : width+iw], nil
 					}
+				} else if r == '!' {
+					// Should we call utf8.DecodeRune similar to the <= >= handling ?
+					if data[1] != '=' {
+						return 0, nil, errors.New("Unexpected token '!'")
+					}
+					return 2, data[0:2], nil
 				} else if unicode.IsSpace(r) {
 					// Eliminate all styles of whitespace with
 					// a simple blank whitespace, to make the

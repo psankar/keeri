@@ -12,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strconv"
 	"sync"
 )
 
@@ -217,10 +218,48 @@ func (db *Keeri) Select(sql string, args ...interface{}) (ret []interface{}, err
 	db.tblNamesLock.RUnlock()
 
 	if tbl == nil {
-		return nil, errors.New(fmt.Sprintf("Invalid table name '%s'", tblName))
+		return nil, fmt.Errorf("Invalid table name '%s'", tblName)
 	}
 
-	// TODO: Set the colTypes in the condTree
-	ret, err = db.Query(tblName, cols, nil)
+	if condTree != nil {
+		tbl.dataMetaDataLock.RLock()
+		resolveColDetails(tbl, condTree)
+		tbl.dataMetaDataLock.RUnlock()
+	}
+
+	ret, err = db.Query(tblName, cols, condTree)
 	return
+}
+
+func resolveColDetails(tbl *table, i *ConditionTree) {
+	for _, j := range i.conditions {
+		colName := j.colDesc.ColName
+		for _, k := range tbl.colsDesc {
+			if k.ColName == colName {
+				log.Println("Setting coltype for column", colName, k.ColType)
+				j.colDesc.ColType = k.ColType
+				j.colData = tbl.cols[colName]
+
+				switch k.ColType {
+				case StringColumn: // Do Nothing
+				case IntColumn:
+					t, e := strconv.Atoi(j.value.(string))
+					if e != nil {
+						panic(e)
+					}
+					j.value = t
+				default:
+					panic("Unsupported column type")
+				}
+			}
+		}
+
+		if j.colDesc.ColType == unRecognizedColumn {
+			panic(fmt.Errorf("Invalid column name: %s", colName))
+		}
+	}
+
+	for _, i := range i.children {
+		resolveColDetails(tbl, i)
+	}
 }

@@ -35,7 +35,7 @@ func skipEmptyWords(words []string, pos *int) {
 // This function takes an incoming SQL string and creates a condition tree
 // out of the WHERE clause nested conditions. However, the conditions will
 // have just the column names resolved but not the column types. The caller
-// (parser) should take care of filling the column types in the condTree
+// of parser should take care of filling the column types in the condTree
 // that is returned, before using it in an eval function.
 // TODO: Probably a good idea to add a 'state' in the CondTree struct, which
 // could be updated after colTypes are resolved and checked in evaluate func
@@ -278,7 +278,7 @@ func generateCondTree(toks []sqlTokens, lo, hi, recursionLevel int) *ConditionTr
 
 			// LHS of the AND keyword
 			if toks[pos-1].tokType == CONDITION_PTR_TOK {
-				cTree.conditions = append(cTree.conditions, *toks[pos-1].value.(*Condition))
+				cTree.conditions = append(cTree.conditions, toks[pos-1].value.(*Condition))
 			} else if toks[pos-1].tokType == CONDITION_TREE_PTR_TOK {
 				cTree.children = append(cTree.children, toks[pos-1].value.(*ConditionTree))
 			} else {
@@ -291,7 +291,7 @@ func generateCondTree(toks []sqlTokens, lo, hi, recursionLevel int) *ConditionTr
 
 			// RHS of the AND keyword
 			if toks[pos+1].tokType == CONDITION_PTR_TOK {
-				cTree.conditions = append(cTree.conditions, *toks[pos+1].value.(*Condition))
+				cTree.conditions = append(cTree.conditions, toks[pos+1].value.(*Condition))
 			} else if toks[pos+1].tokType == CONDITION_TREE_PTR_TOK {
 				cTree.children = append(cTree.children, toks[pos+1].value.(*ConditionTree))
 			} else {
@@ -334,7 +334,7 @@ func generateCondTree(toks []sqlTokens, lo, hi, recursionLevel int) *ConditionTr
 
 			// LHS of the AND keyword
 			if toks[pos-1].tokType == CONDITION_PTR_TOK {
-				cTree.conditions = append(cTree.conditions, *toks[pos-1].value.(*Condition))
+				cTree.conditions = append(cTree.conditions, toks[pos-1].value.(*Condition))
 			} else if toks[pos-1].tokType == CONDITION_TREE_PTR_TOK {
 				cTree.children = append(cTree.children, toks[pos-1].value.(*ConditionTree))
 			} else {
@@ -347,7 +347,7 @@ func generateCondTree(toks []sqlTokens, lo, hi, recursionLevel int) *ConditionTr
 
 			// RHS of the AND keyword
 			if toks[pos+1].tokType == CONDITION_PTR_TOK {
-				cTree.conditions = append(cTree.conditions, *toks[pos+1].value.(*Condition))
+				cTree.conditions = append(cTree.conditions, toks[pos+1].value.(*Condition))
 			} else if toks[pos+1].tokType == CONDITION_TREE_PTR_TOK {
 				cTree.children = append(cTree.children, toks[pos+1].value.(*ConditionTree))
 			} else {

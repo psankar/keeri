@@ -14,7 +14,7 @@ import (
 
 type ConditionTree struct {
 	op         LogicalOperator
-	conditions []Condition
+	conditions []*Condition
 
 	children []*ConditionTree
 }
@@ -42,9 +42,9 @@ func (t *ConditionTree) evaluate() []rowID {
 	conRowIDs := make([]([]rowID), len(t.conditions))
 	for i, c := range t.conditions {
 		wg.Add(1)
-		go func(i int, c Condition) {
+		go func(i int, c *Condition) {
 			defer wg.Done()
-			l := evaluateCondition(&c)
+			l := evaluateCondition(c)
 			conRowIDs[i] = append(conRowIDs[i], l...)
 		}(i, c)
 	}
@@ -202,7 +202,8 @@ func evaluateCondition(i *Condition) []rowID {
 		}
 	case CustomColumn:
 	default:
-		panic("Unsupported column type ")
+		panic(fmt.Errorf("Unsupported column type for column %s:%d",
+			i.colDesc.ColName, i.colDesc.ColType))
 	}
 
 	return ret

@@ -202,7 +202,7 @@ func TestFirstLevelConditions(t *testing.T) {
 				value:   "STRDATA2",
 			},
 			&Condition{
-				op: LT,
+				op: GT,
 				colDesc: ColumnDesc{
 					ColName: "col1",
 					ColType: IntColumn,

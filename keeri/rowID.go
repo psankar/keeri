@@ -11,7 +11,7 @@ import "sort"
 // uniquely identifies a row
 type rowID uint
 
-// Not threadsafe. Caller should have acquired readlock on arr if needed
+// Not threadsafe. Caller should have acquired writeLock on arr if needed
 func sortAndDeDup(arr []rowID) []rowID {
 
 	m := make(map[int]bool)

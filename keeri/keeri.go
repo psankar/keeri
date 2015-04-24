@@ -145,7 +145,7 @@ func (db *Keeri) Query(tableName string, colNames []string,
 			}
 		}
 		if found != true {
-			return nil, errors.New(fmt.Sprintf("Invalid column name", outColName))
+			return nil, fmt.Errorf("Invalid column name", outColName)
 		}
 	}
 
@@ -165,22 +165,22 @@ func (db *Keeri) Query(tableName string, colNames []string,
 			case IntColumn:
 				field, ok := (i.mapPointer.(map[rowID]int))[rID]
 				if ok != true {
-					return nil, errors.New(
-						fmt.Sprintf("Data corruption. No data found for rowID [%v] in a column", rID))
+					return nil,
+						fmt.Errorf("Data corruption. No data found for rowID [%v] in a column", rID)
 				}
 				row = append(row, field)
 			case StringColumn:
 				field, ok := (i.mapPointer.(map[rowID]string))[rID]
 				if ok != true {
-					return nil, errors.New(
-						fmt.Sprintf("Data corruption. No data found for rowID [%v] in a column", rID))
+					return nil,
+						fmt.Errorf("Data corruption. No data found for rowID [%v] in a column", rID)
 				}
 				row = append(row, field)
 			case CustomColumn:
 				field, ok := (i.mapPointer.(map[rowID]interface{}))[rID]
 				if ok != true {
-					return nil, errors.New(
-						fmt.Sprintf("Data corruption. No data found for rowID [%v] in a column", rID))
+					return nil,
+						fmt.Errorf("Data corruption. No data found for rowID [%v] in a column", rID)
 				}
 				row = append(row, field)
 			}

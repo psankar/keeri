@@ -21,7 +21,7 @@ func sortAndDeDup(arr []rowID) []rowID {
 	}
 
 	r := make([]int, 0, len(m))
-	for k, _ := range m {
+	for k := range m {
 		r = append(r, k)
 	}
 	sort.Ints(r)

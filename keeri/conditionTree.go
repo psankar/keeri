@@ -125,7 +125,7 @@ func (t *ConditionTree) evaluate() []rowID {
 		}
 
 		rows := make([]rowID, 0, len(foundMap))
-		for k, _ := range foundMap {
+		for k := range foundMap {
 			rows = append(rows, k)
 		}
 		ret = sortAndDeDup(rows)
@@ -213,13 +213,13 @@ func evaluateCondition(i *Condition) []rowID {
 // `json: tag will help remove some code
 // below and thus making json.(Un)Marshal
 // to be an alternative to the next function
-func (c ConditionTree) String() string {
+func (t ConditionTree) String() string {
 	chi := ""
-	if c.children == nil {
+	if t.children == nil {
 		chi += "\"\""
 	} else {
 		chi += fmt.Sprintf("[")
-		for _, i := range c.children {
+		for _, i := range t.children {
 			chi += fmt.Sprintf("%s,", i)
 		}
 		chi = strings.TrimSuffix(chi, ",")
@@ -227,11 +227,11 @@ func (c ConditionTree) String() string {
 	}
 
 	con := ""
-	if c.conditions == nil {
+	if t.conditions == nil {
 		con += "\"\""
 	} else {
 		con += fmt.Sprintf("[")
-		for _, i := range c.conditions {
+		for _, i := range t.conditions {
 			con += fmt.Sprintf("%s,", i)
 		}
 		con = strings.TrimSuffix(con, ",")
@@ -239,5 +239,5 @@ func (c ConditionTree) String() string {
 	}
 
 	return fmt.Sprintf("\n{\n\"LogicalOperator\":\"%s\",\n\"Conditions\":%s,\n\"Children\":%s\n}",
-		c.op, con, chi)
+		t.op, con, chi)
 }

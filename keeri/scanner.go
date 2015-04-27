@@ -10,7 +10,6 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	"log"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -98,7 +97,6 @@ func splitSQL(input string) ([]string, error) {
 	for _, i := range ret {
 		s += fmt.Sprintf("[%v]", i)
 	}
-	log.Println("The SQL statement is split into the following words:\n", s)
 
 	return ret, nil
 }
